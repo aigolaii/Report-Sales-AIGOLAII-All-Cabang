@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -20,12 +19,12 @@
 <body>
   <h2>📊 Sales Cabang AIGOLAII</h2>
 
-  <!-- Form input sengaja disembunyikan -->
-  <div style="display:none;">
+  <!-- Mode Admin (disembunyikan sampai login) -->
+  <div id="adminForm" style="display:none;">
     <input type="date" id="tanggal">
     <select id="cabang"></select>
     <select id="produk"></select>
-    <input type="number" id="jumlah">
+    <input type="number" id="jumlah" placeholder="Jumlah">
     <button onclick="tambahData()">Tambah Data</button>
   </div>
 
@@ -174,12 +173,52 @@
       });
     }
 
+    function tambahData() {
+      const tanggal = document.getElementById("tanggal").value;
+      const cabang = document.getElementById("cabang").value;
+      const produk = document.getElementById("produk").value;
+      const jumlah = parseInt(document.getElementById("jumlah").value);
+      if (tanggal && cabang && produk && jumlah) {
+        data.push({ tanggal, cabang, produk, jumlah });
+        localStorage.setItem("penjualan", JSON.stringify(data));
+        tampilkanData();
+        alert("Data berhasil ditambahkan!");
+      }
+    }
+
     function downloadExcel() {
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Penjualan");
       XLSX.writeFile(wb, "data_penjualan.xlsx");
     }
+
+    // Mode Admin Tersembunyi (Ctrl + Shift + A)
+    document.addEventListener("keydown", function(e) {
+      if (e.ctrlKey && e.shiftKey && e.key === "A") {
+        const password = prompt("Masukkan password admin:");
+        if (password === "aigolasecret") {
+          document.getElementById("adminForm").style.display = "block";
+          alert("✅ Mode Admin Aktif");
+        } else {
+          alert("❌ Password Salah!");
+        }
+      }
+    });
+
+    // Isi dropdown cabang dan produk
+    const cabangs = Object.keys(targetPerCabang);
+    const produkList = ["KKB Mobil", "KSM Motor", "Multiguna"];
+    cabangs.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = opt.textContent = c;
+      document.getElementById("cabang").appendChild(opt);
+    });
+    produkList.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = opt.textContent = p;
+      document.getElementById("produk").appendChild(opt);
+    });
 
     tampilkanData();
   </script>
