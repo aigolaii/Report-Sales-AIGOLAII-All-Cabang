@@ -20,9 +20,226 @@
 </head>
 <body>
   <h2>📊 Sales Cabang AIGOLAII (GitHub JSON)</h2>
-  <!-- Konten di sini -->
-  <script>
-    alert('File berhasil dimuat, koneksi ke GitHub JSON siap!');
-  </script>
+
+  <div id="adminForm" style="display:none;">
+    <input type="date" id="tanggal">
+    <select id="cabang"></select>
+    <select id="produk"></select>
+    <input type="number" id="jumlah" placeholder="Jumlah">
+    <button id="tombolInput" onclick="tambahData()">Tambah Data</button>
+  </div>
+
+  <div class="filter-bar">
+    <label>Filter Cabang:</label>
+    <select id="filterCabang" onchange="tampilkanData()"></select>
+    <label>Filter Bulan:</label>
+    <input type="month" id="filterBulan" onchange="tampilkanData()">
+    <button onclick="downloadExcel()">⬇ Export Excel</button>
+  </div>
+
+  <table id="tabelData">
+    <thead>
+      <tr>
+        <th>Tanggal</th>
+        <th>Cabang</th>
+        <th>Produk</th>
+        <th>Jumlah</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <canvas id="grafik" height="100"></canvas>
+
+  <h3>🏆 Peringkat Pencapaian Target</h3>
+  <table id="tabelRingkasan">
+    <thead>
+      <tr>
+        <th>Ranking</th>
+        <th>Cabang</th>
+        <th>Total</th>
+        <th>Target</th>
+        <th>Pencapaian (%)</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+<script>
+const repoOwner = "aigolaii";
+const repoName = "Report-Sales-AIGOLAII-All-Cabang";
+const filePath = "data.json";
+const rawUrl = `https://raw.githubusercontent.com/${repoOwner}/${repoName}/main/${filePath}`;
+const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`;
+
+let data = [];
+let fileSha = null;
+let isAdmin = false;
+let githubToken = "";
+let modeEdit = false;
+let indexEdit = null;
+
+const targetPerCabang = {
+  "Bekasi 1": 55, "Bekasi 2": 55, "Bekasi 3": 55,
+  "Bintaro": 55, "BSD": 55, "Cawang": 55, "Cengkareng": 55, "Garut": 55,
+  "Jogja": 55, "Padang": 55, "Pondok Gede": 55, "Sibolga": 55,
+  "Cikarang": 55, "Cileungsi": 55, "Jaksel": 55, "Tele HO": 55
+};
+
+async function loadData() {
+  const res = await fetch(rawUrl);
+  data = await res.json();
+  tampilkanCabangDropdown();
+  tampilkanData();
+}
+
+async function getFileSha() {
+  const res = await fetch(apiUrl, {
+    headers: { Authorization: `token ${githubToken}` }
+  });
+  const json = await res.json();
+  fileSha = json.sha;
+}
+
+async function saveDataToGitHub() {
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+  const res = await fetch(apiUrl, {
+    method: "PUT",
+    headers: {
+      "Authorization": `token ${githubToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      message: "Update data.json from admin web app",
+      content,
+      sha: fileSha
+    })
+  });
+  const json = await res.json();
+  fileSha = json.content.sha;
+}
+
+function tampilkanCabangDropdown() {
+  const cabangSelect = document.getElementById("cabang");
+  const filterSelect = document.getElementById("filterCabang");
+  Object.keys(targetPerCabang).forEach(c => {
+    cabangSelect.innerHTML += `<option value="${c}">${c}</option>`;
+    filterSelect.innerHTML += `<option value="${c}">${c}</option>`;
+  });
+  ["KKB Mobil", "KSM Motor", "Multiguna"].forEach(p => {
+    document.getElementById("produk").innerHTML += `<option value="${p}">${p}</option>`;
+  });
+}
+
+function tampilkanData() {
+  const tbody = document.querySelector("#tabelData tbody");
+  tbody.innerHTML = "";
+  const fCabang = document.getElementById("filterCabang").value;
+  const fBulan = document.getElementById("filterBulan").value;
+
+  const filtered = data.map((d, i) => ({ ...d, index: i }))
+    .filter(d => (!fCabang || d.cabang === fCabang) && (!fBulan || d.tanggal.startsWith(fBulan)));
+
+  filtered.forEach(d => {
+    const aksi = isAdmin
+      ? `<button onclick="editData(${d.index})">✏️</button><button onclick="hapusData(${d.index})">🗑️</button>`
+      : "";
+    tbody.innerHTML += `<tr>
+      <td>${d.tanggal}</td>
+      <td>${d.cabang}</td>
+      <td>${d.produk}</td>
+      <td>${d.jumlah}</td>
+      <td>${aksi}</td>
+    </tr>`;
+  });
+
+  tampilkanRingkasan(filtered);
+  updateChart(filtered);
+}
+
+function editData(index) {
+  const d = data[index];
+  document.getElementById("tanggal").value = d.tanggal;
+  document.getElementById("cabang").value = d.cabang;
+  document.getElementById("produk").value = d.produk;
+  document.getElementById("jumlah").value = d.jumlah;
+  modeEdit = true;
+  indexEdit = index;
+  document.getElementById("tombolInput").textContent = "Update Data";
+}
+
+async function tambahData() {
+  const tanggal = document.getElementById("tanggal").value;
+  const cabang = document.getElementById("cabang").value;
+  const produk = document.getElementById("produk").value;
+  const jumlah = parseInt(document.getElementById("jumlah").value);
+  if (!tanggal || !cabang || !produk || isNaN(jumlah)) return alert("Lengkapi data");
+
+  if (modeEdit) {
+    data[indexEdit] = { tanggal, cabang, produk, jumlah };
+    modeEdit = false;
+    document.getElementById("tombolInput").textContent = "Tambah Data";
+  } else {
+    data.push({ tanggal, cabang, produk, jumlah });
+  }
+
+  await saveDataToGitHub();
+  tampilkanData();
+}
+
+async function hapusData(index) {
+  if (!confirm("Hapus data ini?")) return;
+  data.splice(index, 1);
+  await saveDataToGitHub();
+  tampilkanData();
+}
+
+function tampilkanRingkasan(filtered) {
+  const ringkasan = {};
+  filtered.forEach(d => ringkasan[d.cabang] = (ringkasan[d.cabang] || 0) + d.jumlah);
+  const hasil = Object.entries(ringkasan).map(([cabang, total]) => {
+    const target = targetPerCabang[cabang] || 0;
+    const persen = target ? ((total / target) * 100).toFixed(1) : 0;
+    return { cabang, total, target, persen };
+  }).sort((a, b) => b.persen - a.persen);
+
+  const tbody = document.querySelector("#tabelRingkasan tbody");
+  tbody.innerHTML = hasil.map((item, i) => `
+    <tr><td>${i + 1}</td><td>${item.cabang}</td><td>${item.total}</td>
+    <td>${item.target}</td><td>${item.persen}%</td></tr>`).join("");
+}
+
+function updateChart(filtered) {
+  const totals = {};
+  filtered.forEach(d => totals[d.cabang] = (totals[d.cabang] || 0) + d.jumlah);
+  const labels = Object.keys(totals);
+  const values = Object.values(totals);
+  if (window.barChart) window.barChart.destroy();
+  const ctx = document.getElementById("grafik").getContext("2d");
+  window.barChart = new Chart(ctx, {
+    type: "bar",
+    data: { labels, datasets: [{ label: "Total Penjualan", data: values, backgroundColor: "rgba(54, 162, 235, 0.6)" }] }
+  });
+}
+
+document.addEventListener("keydown", async function(e) {
+  if (e.ctrlKey && e.shiftKey && e.key === "A") {
+    const pw = prompt("Masukkan password admin:");
+    if (pw === "aigolasecret") {
+      githubToken = prompt("Masukkan GitHub Token:");
+      isAdmin = true;
+      document.getElementById("adminForm").style.display = "block";
+      await getFileSha();
+      tampilkanData();
+      alert("✅ Mode Admin Aktif");
+    } else {
+      alert("❌ Password Salah");
+    }
+  }
+});
+
+window.onload = loadData;
+</script>
 </body>
 </html>
