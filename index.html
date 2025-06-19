@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -19,31 +20,12 @@
 <body>
   <h2>📊 Sales Cabang AIGOLAII</h2>
 
-  <div>
+  <!-- Form input sengaja disembunyikan -->
+  <div style="display:none;">
     <input type="date" id="tanggal">
-    <select id="cabang">
-      <option value="Bekasi 1">Bekasi 1</option>
-      <option value="Bekasi 2">Bekasi 2</option>
-      <option value="Bekasi 3">Bekasi 3</option>
-      <option value="Bintaro">Bintaro</option>
-      <option value="BSD">BSD</option>
-      <option value="Cawang">Cawang</option>
-      <option value="Cengkareng">Cengkareng</option>
-      <option value="Garut">Garut</option>
-      <option value="Jogja">Jogja</option>
-      <option value="Padang">Padang</option>
-      <option value="Pondok Gede">Pondok Gede</option>
-      <option value="Sibolga">Sibolga</option>
-      <option value="Cikarang">Cikarang</option>
-      <option value="Cileungsi">Cileungsi</option>
-      <option value="Jaksel">Jaksel</option>
-      <option value="Tele HO">Tele HO</option>
-    </select>
-    <select id="produk">
-      <option value="Motor">Motor</option>
-      <option value="Mobil">Mobil</option>
-    </select>
-    <input type="number" id="jumlah" placeholder="Jumlah unit" min="1">
+    <select id="cabang"></select>
+    <select id="produk"></select>
+    <input type="number" id="jumlah">
     <button onclick="tambahData()">Tambah Data</button>
   </div>
 
@@ -72,7 +54,6 @@
     <label>Filter Bulan:</label>
     <input type="month" id="filterBulan" onchange="tampilkanData()">
     <button onclick="downloadExcel()">⬇ Export Excel</button>
-    <button onclick="resetData()">🗑 Reset Data</button>
   </div>
 
   <table id="tabelData">
@@ -114,28 +95,6 @@
       "Cikarang": 55, "Cileungsi": 55, "Jaksel": 55,
       "Tele HO": 55
     };
-
-    function tambahData() {
-      const tanggal = document.getElementById("tanggal").value;
-      const cabang = document.getElementById("cabang").value;
-      const produk = document.getElementById("produk").value;
-      const jumlah = parseInt(document.getElementById("jumlah").value);
-
-      if (!tanggal || !cabang || !produk || isNaN(jumlah)) {
-        alert("Harap isi semua field!");
-        return;
-      }
-
-      data.push({ tanggal, cabang, produk, jumlah });
-      localStorage.setItem("penjualan", JSON.stringify(data));
-      tampilkanData();
-      resetForm();
-    }
-
-    function resetForm() {
-      document.getElementById("tanggal").value = "";
-      document.getElementById("jumlah").value = "";
-    }
 
     function tampilkanData() {
       const tbody = document.querySelector("#tabelData tbody");
@@ -220,14 +179,6 @@
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Penjualan");
       XLSX.writeFile(wb, "data_penjualan.xlsx");
-    }
-
-    function resetData() {
-      if (confirm("Yakin ingin menghapus semua data?")) {
-        localStorage.removeItem("penjualan");
-        data = [];
-        tampilkanData();
-      }
     }
 
     tampilkanData();
