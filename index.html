@@ -14,12 +14,13 @@
     canvas { max-width: 100%; margin-top: 30px; }
     .filter-bar { margin-top: 20px; }
     h2, h3 { margin-top: 40px; }
+    .hapus-btn { color: red; cursor: pointer; border: none; background: none; font-weight: bold; }
   </style>
 </head>
 <body>
   <h2>📊 Sales Cabang AIGOLAII</h2>
 
-  <!-- Mode Admin (disembunyikan sampai login) -->
+  <!-- Mode Admin -->
   <div id="adminForm" style="display:none;">
     <input type="date" id="tanggal">
     <select id="cabang"></select>
@@ -62,6 +63,7 @@
         <th>Cabang</th>
         <th>Produk</th>
         <th>Jumlah</th>
+        <th>Aksi</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -102,10 +104,12 @@
       const filterCabang = document.getElementById("filterCabang").value;
       const filterBulan = document.getElementById("filterBulan").value;
 
-      const filtered = data.filter(d => {
-        return (!filterCabang || d.cabang === filterCabang) &&
-               (!filterBulan || d.tanggal.startsWith(filterBulan));
-      });
+      const filtered = data
+        .map((d, i) => ({ ...d, index: i }))
+        .filter(d => {
+          return (!filterCabang || d.cabang === filterCabang) &&
+                 (!filterBulan || d.tanggal.startsWith(filterBulan));
+        });
 
       filtered.forEach(d => {
         const row = `<tr>
@@ -113,12 +117,21 @@
           <td>${d.cabang}</td>
           <td>${d.produk}</td>
           <td>${d.jumlah}</td>
+          <td><button class="hapus-btn" onclick="hapusData(${d.index})">🗑️</button></td>
         </tr>`;
         tbody.innerHTML += row;
       });
 
       updateChart(filtered);
       tampilkanRingkasan(filtered);
+    }
+
+    function hapusData(index) {
+      if (confirm("Yakin ingin menghapus data ini?")) {
+        data.splice(index, 1);
+        localStorage.setItem("penjualan", JSON.stringify(data));
+        tampilkanData();
+      }
     }
 
     function updateChart(filteredData) {
@@ -193,7 +206,7 @@
       XLSX.writeFile(wb, "data_penjualan.xlsx");
     }
 
-    // Mode Admin Tersembunyi (Ctrl + Shift + A)
+    // Mode Admin (Ctrl+Shift+A)
     document.addEventListener("keydown", function(e) {
       if (e.ctrlKey && e.shiftKey && e.key === "A") {
         const password = prompt("Masukkan password admin:");
@@ -206,7 +219,7 @@
       }
     });
 
-    // Isi dropdown cabang dan produk
+    // Dropdown isi
     const cabangs = Object.keys(targetPerCabang);
     const produkList = ["KKB Mobil", "KSM Motor", "Multiguna"];
     cabangs.forEach(c => {
