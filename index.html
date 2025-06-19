@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -14,7 +15,7 @@
     canvas { max-width: 100%; margin-top: 30px; }
     .filter-bar { margin-top: 20px; }
     h2, h3 { margin-top: 40px; }
-    .edit-btn { cursor: pointer; }
+    .edit-btn, .delete-btn { cursor: pointer; margin: 0 4px; }
   </style>
 </head>
 <body>
@@ -112,7 +113,10 @@
       });
 
       filtered.forEach(d => {
-        const aksi = isAdmin ? `<button class="edit-btn" onclick="editData(${d.index})">✏️</button>` : '';
+        const aksi = isAdmin
+          ? `<button class="edit-btn" onclick="editData(${d.index})">✏️</button>
+             <button class="delete-btn" onclick="hapusData(${d.index})">🗑️</button>`
+          : '';
         const row = `<tr>
           <td>${d.tanggal}</td>
           <td>${d.cabang}</td>
@@ -136,6 +140,14 @@
       modeEdit = true;
       indexEdit = index;
       document.getElementById("tombolInput").textContent = "Update Data";
+    }
+
+    function hapusData(index) {
+      if (confirm("Yakin ingin menghapus data ini?")) {
+        data.splice(index, 1);
+        localStorage.setItem("penjualan", JSON.stringify(data));
+        tampilkanData();
+      }
     }
 
     function tambahData() {
