@@ -4,5 +4,11 @@
     "cabang": "Bekasi 1",
     "produk": "KSM Motor",
     "jumlah": 11
+  },
+  {
+    "tanggal": "2025-06-18",
+    "cabang": "Bekasi 2",
+    "produk": "KSM Motor",
+    "jumlah": 21
   }
 ]
